@@ -1,6 +1,6 @@
 # SysForge - IT Command Center
 
-A modern, cyberpunk-themed Windows system administration tool built with Python and CustomTkinter.
+A cool Windows system administration tool built with Python and CustomTkinter.
 
 ## Features
 
