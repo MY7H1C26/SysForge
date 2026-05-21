@@ -5,7 +5,7 @@ Cyberpunk-themed GUI with real system commands
 """
 
 import customtkinter as ctk
-from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkTextbox, CTkProgressBar
+from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkTextbox, CTkProgressBar, CTkScrollableFrame
 import tkinter as tk
 from tkinter import messagebox
 import subprocess
@@ -141,7 +141,7 @@ class SysForge(CTk):
         
     def create_navigation(self):
         # Navigation Panel
-        nav_panel = CTkFrame(self.content_frame, width=200, fg_color=self.colors['bg_medium'])
+        nav_panel = CTkFrame(self.content_frame, width=220, fg_color=self.colors['bg_medium'])
         nav_panel.pack(side="left", fill="y", padx=(0, 5))
         nav_panel.pack_propagate(False)
         
@@ -152,6 +152,15 @@ class SysForge(CTk):
             font=("Consolas", 14, "bold"),
             text_color=self.colors['neon_blue']
         ).pack(pady=(20, 10))
+        
+        # Create scrollable frame
+        scrollable_frame = CTkScrollableFrame(
+            nav_panel,
+            fg_color="transparent",
+            scrollbar_button_color=self.colors['neon_blue'],
+            scrollbar_button_hover_color=self.colors['neon_purple']
+        )
+        scrollable_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Command Categories
         categories = [
@@ -183,11 +192,11 @@ class SysForge(CTk):
             ])
         ]
         
-        # Create scrollable frame for buttons
+        # Create buttons inside scrollable frame
         for category, commands in categories:
             # Category Header
-            cat_frame = CTkFrame(nav_panel, fg_color="transparent")
-            cat_frame.pack(fill="x", padx=10, pady=(10, 5))
+            cat_frame = CTkFrame(scrollable_frame, fg_color="transparent")
+            cat_frame.pack(fill="x", padx=5, pady=(10, 5))
             
             CTkLabel(
                 cat_frame,
@@ -199,7 +208,7 @@ class SysForge(CTk):
             # Command Buttons
             for text, command in commands:
                 btn = CTkButton(
-                    nav_panel,
+                    scrollable_frame,
                     text=text,
                     command=command,
                     fg_color=self.colors['bg_light'],
@@ -209,7 +218,7 @@ class SysForge(CTk):
                     height=35,
                     anchor="w"
                 )
-                btn.pack(fill="x", padx=10, pady=2)
+                btn.pack(fill="x", padx=5, pady=2)
                 
     def create_terminal(self):
         # Terminal Panel
