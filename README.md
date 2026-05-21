@@ -1,10 +1,12 @@
-# SysForge - IT Command Center
+# ⚡ SysForge - IT Command Center
+
+![SysForge Screenshot](assets/screenshot.png)
 
 A cool Windows system administration tool built with Python and CustomTkinter.
 
-## Features
+## ✨ Features
 
-### Network Tools
+### 🌐 Network Tools
 - Show IP Configuration
 - Flush DNS Cache
 - Renew DHCP Lease
@@ -14,7 +16,7 @@ A cool Windows system administration tool built with Python and CustomTkinter.
 - Internet Connectivity Check
 - Network Adapter Reset
 
-### System Tools
+### 💻 System Tools
 - System Information Viewer
 - Disk Usage Analysis
 - Disk Scan & Repair
@@ -23,14 +25,14 @@ A cool Windows system administration tool built with Python and CustomTkinter.
 - Group Policy Update
 - Print Spooler Restart
 
-### Maintenance
+### 🔧 Maintenance
 - Full System Maintenance Mode
 - Windows Defender Scan
 - RAM Cleaner
 - Startup Program Optimizer
 - Real-time System Monitoring
 
-### Advanced Features
+### 🎨 Advanced Features
 - Admin Privilege Auto-Request
 - Live Terminal with Colored Output
 - Animated Progress Bars
@@ -41,10 +43,16 @@ A cool Windows system administration tool built with Python and CustomTkinter.
 - Live System Stats Display
 - Real-time Clock
 
-## Installation
+## 📦 Installation
+
+### Prerequisites
+- Windows 10/11
+- Python 3.8+
+- Administrator privileges (recommended)
 
 ### From Source
-1. Clone or download the repository
-2. Install requirements:
 ```bash
+git clone https://github.com/MY7H1C26/SysForge.git
+cd SysForge
 pip install -r requirements.txt
+python main.py

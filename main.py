@@ -1,9 +1,3 @@
-"""
-SysForge - IT Command Center
-Modern Windows System Administration Tool
-Cyberpunk-themed GUI with real system commands
-"""
-
 import customtkinter as ctk
 from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkTextbox, CTkProgressBar, CTkScrollableFrame
 import tkinter as tk
@@ -21,7 +15,6 @@ from pathlib import Path
 import ctypes
 import winreg
 
-# Configuration
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
@@ -29,12 +22,10 @@ class SysForge(CTk):
     def __init__(self):
         super().__init__()
         
-        # Window Setup
         self.title("SysForge - IT Command Center")
         self.geometry("1200x700")
         self.minsize(1000, 600)
         
-        # Color Scheme
         self.colors = {
             'bg_dark': '#0a0a0f',
             'bg_medium': '#13131a',
@@ -48,41 +39,26 @@ class SysForge(CTk):
             'border': '#2a2a3a'
         }
         
-        # Configure window
         self.configure(fg_color=self.colors['bg_dark'])
         
-        # Command queue for thread-safe execution
         self.command_queue = queue.Queue()
         self.is_running = False
         
-        # Setup UI
         self.setup_ui()
-        
-        # Start clock update
         self.update_clock()
-        
-        # Process command queue
         self.process_queue()
         
     def setup_ui(self):
-        # Main Container
         self.main_container = CTkFrame(self, fg_color=self.colors['bg_dark'])
         self.main_container.pack(fill="both", expand=True, padx=2, pady=2)
         
-        # Header
         self.create_header()
         
-        # Content Area
         self.content_frame = CTkFrame(self.main_container, fg_color=self.colors['bg_dark'])
         self.content_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         
-        # Left Panel - Navigation
         self.create_navigation()
-        
-        # Right Panel - Terminal & Output
         self.create_terminal()
-        
-        # Status Bar
         self.create_status_bar()
         
     def create_header(self):
@@ -90,7 +66,6 @@ class SysForge(CTk):
         header.pack(fill="x", padx=10, pady=(10, 5))
         header.pack_propagate(False)
         
-        # Logo/Title
         title_frame = CTkFrame(header, fg_color="transparent")
         title_frame.pack(side="left", padx=20)
         
@@ -108,7 +83,6 @@ class SysForge(CTk):
             text_color=self.colors['text_secondary']
         ).pack(side="left", padx=(10, 0))
         
-        # Clock
         self.clock_label = CTkLabel(
             header,
             text="",
@@ -117,7 +91,6 @@ class SysForge(CTk):
         )
         self.clock_label.pack(side="right", padx=20)
         
-        # System Status Indicators
         status_frame = CTkFrame(header, fg_color="transparent")
         status_frame.pack(side="right", padx=20)
         
@@ -136,16 +109,13 @@ class SysForge(CTk):
             label.pack(expand=True)
             self.status_indicators[status] = label
             
-        # Update system stats
         self.update_system_stats()
         
     def create_navigation(self):
-        # Navigation Panel
         nav_panel = CTkFrame(self.content_frame, width=220, fg_color=self.colors['bg_medium'])
         nav_panel.pack(side="left", fill="y", padx=(0, 5))
         nav_panel.pack_propagate(False)
         
-        # Navigation Title
         CTkLabel(
             nav_panel,
             text="COMMANDS",
@@ -153,7 +123,6 @@ class SysForge(CTk):
             text_color=self.colors['neon_blue']
         ).pack(pady=(20, 10))
         
-        # Create scrollable frame
         scrollable_frame = CTkScrollableFrame(
             nav_panel,
             fg_color="transparent",
@@ -162,7 +131,6 @@ class SysForge(CTk):
         )
         scrollable_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
-        # Command Categories
         categories = [
             ("NETWORK", [
                 ("🌐 Show IP Config", self.show_ip_config),
@@ -192,9 +160,7 @@ class SysForge(CTk):
             ])
         ]
         
-        # Create buttons inside scrollable frame
         for category, commands in categories:
-            # Category Header
             cat_frame = CTkFrame(scrollable_frame, fg_color="transparent")
             cat_frame.pack(fill="x", padx=5, pady=(10, 5))
             
@@ -205,7 +171,6 @@ class SysForge(CTk):
                 text_color=self.colors['neon_purple']
             ).pack(anchor="w")
             
-            # Command Buttons
             for text, command in commands:
                 btn = CTkButton(
                     scrollable_frame,
@@ -221,11 +186,9 @@ class SysForge(CTk):
                 btn.pack(fill="x", padx=5, pady=2)
                 
     def create_terminal(self):
-        # Terminal Panel
         terminal_panel = CTkFrame(self.content_frame, fg_color=self.colors['bg_medium'])
         terminal_panel.pack(side="right", fill="both", expand=True)
         
-        # Terminal Header
         terminal_header = CTkFrame(terminal_panel, fg_color=self.colors['bg_light'], height=40)
         terminal_header.pack(fill="x")
         terminal_header.pack_propagate(False)
@@ -237,7 +200,6 @@ class SysForge(CTk):
             text_color=self.colors['neon_green']
         ).pack(side="left", padx=20)
         
-        # Terminal Controls
         controls_frame = CTkFrame(terminal_header, fg_color="transparent")
         controls_frame.pack(side="right", padx=10)
         
@@ -274,7 +236,6 @@ class SysForge(CTk):
             font=("Consolas", 10)
         ).pack(side="left", padx=2)
         
-        # Terminal Output
         self.terminal = CTkTextbox(
             terminal_panel,
             fg_color=self.colors['bg_dark'],
@@ -284,7 +245,6 @@ class SysForge(CTk):
         )
         self.terminal.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Configure text tags for colored output
         self.terminal.tag_config("success", foreground="#00ff88")
         self.terminal.tag_config("error", foreground="#ff4444")
         self.terminal.tag_config("warning", foreground="#ffaa00")
@@ -292,7 +252,6 @@ class SysForge(CTk):
         self.terminal.tag_config("header", foreground="#b44dff")
         self.terminal.tag_config("cyan", foreground="#00d4ff")
         
-        # Progress Bar
         self.progress_frame = CTkFrame(terminal_panel, fg_color="transparent", height=30)
         self.progress_frame.pack(fill="x", padx=10, pady=(0, 10))
         
@@ -305,7 +264,6 @@ class SysForge(CTk):
         self.progress_bar.pack(fill="x")
         self.progress_bar.set(0)
         
-        # Welcome message
         self.log_terminal("🚀 SysForge IT Command Center Initialized", "header")
         self.log_terminal("=" * 60, "info")
         self.log_terminal("Ready to execute system commands...", "success")
@@ -324,14 +282,12 @@ class SysForge(CTk):
         )
         self.status_label.pack(side="left", padx=20)
         
-        # Check admin rights
         if self.is_admin():
             self.status_label.configure(text="● Ready | Admin: ✓")
         else:
             self.status_label.configure(text="● Ready | Admin: ✗ (Limited)")
             
     def log_terminal(self, message, tag=None):
-        """Add message to terminal with optional color tag"""
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         formatted_message = f"[{timestamp}] {message}\n"
         
@@ -340,7 +296,6 @@ class SysForge(CTk):
         self.update()
         
     def run_command(self, command, shell=True):
-        """Execute a system command and return output"""
         try:
             result = subprocess.run(
                 command,
@@ -362,7 +317,6 @@ class SysForge(CTk):
             return False, str(e)
             
     def execute_with_progress(self, command_func, description):
-        """Execute a command with progress bar animation"""
         if self.is_running:
             self.log_terminal("⚠️ Another command is already running", "warning")
             return
@@ -371,7 +325,6 @@ class SysForge(CTk):
             self.is_running = True
             self.status_label.configure(text=f"⏳ Running: {description}")
             
-            # Animate progress bar
             for i in range(101):
                 if not self.is_running:
                     break
@@ -394,7 +347,6 @@ class SysForge(CTk):
         thread = threading.Thread(target=worker, daemon=True)
         thread.start()
         
-    # Command Functions
     def show_ip_config(self):
         def cmd():
             return self.run_command("ipconfig /all")
@@ -516,7 +468,6 @@ class SysForge(CTk):
     def empty_recycle_bin(self):
         def cmd():
             try:
-                # Use PowerShell to empty recycle bin
                 ps_command = 'powershell -Command "Clear-RecycleBin -Force -ErrorAction SilentlyContinue"'
                 return self.run_command(ps_command)
             except:
@@ -542,7 +493,6 @@ class SysForge(CTk):
         
     def ram_cleaner(self):
         def cmd():
-            # Clear working set of processes
             try:
                 for proc in psutil.process_iter(['pid', 'name']):
                     try:
@@ -550,7 +500,6 @@ class SysForge(CTk):
                     except:
                         pass
                         
-                # Use Windows built-in memory management
                 ctypes.windll.psapi.EmptyWorkingSet(-1)
                 return True, "RAM cleaned successfully"
             except Exception as e:
@@ -627,7 +576,6 @@ class SysForge(CTk):
                 self.status_label.configure(text=f"⏳ Maintenance: {task_name}")
                 self.log_terminal(f"\n▶ {task_name}...", "info")
                 
-                # Progress for each task
                 progress_per_task = 100 / len(tasks)
                 for j in range(int(progress_per_task)):
                     if not self.is_running:
@@ -648,14 +596,12 @@ class SysForge(CTk):
         thread = threading.Thread(target=worker, daemon=True)
         thread.start()
         
-    # Utility Functions
     def get_default_gateway(self):
         try:
             gateways = psutil.net_if_addrs()
             for interface, addrs in gateways.items():
                 for addr in addrs:
                     if addr.family == socket.AF_INET and addr.address != '127.0.0.1':
-                        # Get the gateway (usually .1 or .254)
                         ip_parts = addr.address.split('.')
                         ip_parts[-1] = '1'
                         return '.'.join(ip_parts)
@@ -729,7 +675,6 @@ class SysForge(CTk):
         self.log_terminal("🗑️ Terminal cleared", "info")
         
 def main():
-    # Request admin privileges if not already admin
     if not ctypes.windll.shell32.IsUserAnAdmin():
         ctypes.windll.shell32.ShellExecuteW(
             None, "runas", sys.executable, " ".join(sys.argv), None, 1
