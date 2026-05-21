@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkTextbox, CTkProgressBar, CTkScrollableFrame
+from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkTextbox, CTkProgressBar, CTkScrollableFrame, CTkSegmentedButton
 import tkinter as tk
 from tkinter import messagebox
 import subprocess
@@ -43,26 +43,29 @@ class SysForge(CTk):
         
         self.command_queue = queue.Queue()
         self.is_running = False
+        self.current_view = "terminal"
+        self.active_category = None
         
         self.setup_ui()
         self.update_clock()
         self.process_queue()
+        self.update_system_stats()
         
     def setup_ui(self):
-        self.main_container = CTkFrame(self, fg_color=self.colors['bg_dark'])
+        self.main_container = CTkFrame(self, fg_color=self.colors['bg_dark'], corner_radius=15)
         self.main_container.pack(fill="both", expand=True, padx=2, pady=2)
         
         self.create_header()
         
-        self.content_frame = CTkFrame(self.main_container, fg_color=self.colors['bg_dark'])
+        self.content_frame = CTkFrame(self.main_container, fg_color=self.colors['bg_dark'], corner_radius=15)
         self.content_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         
         self.create_navigation()
-        self.create_terminal()
+        self.create_main_panel()
         self.create_status_bar()
         
     def create_header(self):
-        header = CTkFrame(self.main_container, height=60, fg_color=self.colors['bg_medium'])
+        header = CTkFrame(self.main_container, height=60, fg_color=self.colors['bg_medium'], corner_radius=15)
         header.pack(fill="x", padx=10, pady=(10, 5))
         header.pack_propagate(False)
         
@@ -96,7 +99,7 @@ class SysForge(CTk):
         
         self.status_indicators = {}
         for status in ['CPU', 'RAM', 'DISK']:
-            indicator = CTkFrame(status_frame, fg_color=self.colors['bg_light'], width=80, height=30)
+            indicator = CTkFrame(status_frame, fg_color=self.colors['bg_light'], width=80, height=30, corner_radius=10)
             indicator.pack(side="left", padx=5)
             indicator.pack_propagate(False)
             
@@ -108,89 +111,142 @@ class SysForge(CTk):
             )
             label.pack(expand=True)
             self.status_indicators[status] = label
-            
-        self.update_system_stats()
         
     def create_navigation(self):
-        nav_panel = CTkFrame(self.content_frame, width=220, fg_color=self.colors['bg_medium'])
-        nav_panel.pack(side="left", fill="y", padx=(0, 5))
-        nav_panel.pack_propagate(False)
+        self.nav_panel = CTkFrame(self.content_frame, width=220, fg_color=self.colors['bg_medium'], corner_radius=15)
+        self.nav_panel.pack(side="left", fill="y", padx=(0, 5))
+        self.nav_panel.pack_propagate(False)
         
         CTkLabel(
-            nav_panel,
-            text="COMMANDS",
+            self.nav_panel,
+            text="CATEGORIES",
             font=("Consolas", 14, "bold"),
             text_color=self.colors['neon_blue']
         ).pack(pady=(20, 10))
         
-        scrollable_frame = CTkScrollableFrame(
-            nav_panel,
+        self.nav_scroll = CTkScrollableFrame(
+            self.nav_panel,
             fg_color="transparent",
             scrollbar_button_color=self.colors['neon_blue'],
             scrollbar_button_hover_color=self.colors['neon_purple']
         )
-        scrollable_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        self.nav_scroll.pack(fill="both", expand=True, padx=8, pady=5)
         
-        categories = [
-            ("NETWORK", [
-                ("🌐 Show IP Config", self.show_ip_config),
-                ("🔄 Flush DNS", self.flush_dns),
-                ("📡 Renew DHCP", self.renew_dhcp),
-                ("🔌 Restart DNS Client", self.restart_dns_client),
-                ("📶 Ping Google", self.ping_google),
-                ("🏠 Ping Gateway", self.ping_gateway),
-                ("🌍 Check Internet", self.check_internet),
-                ("🔧 Custom Ping", self.custom_ping),
-            ]),
-            ("SYSTEM", [
-                ("💻 System Info", self.system_info),
-                ("💾 Disk Usage", self.disk_usage),
-                ("🔍 Disk Scan", self.disk_scan),
-                ("🧹 Clean Temp Files", self.clean_temp),
-                ("🗑️ Empty Recycle Bin", self.empty_recycle_bin),
-                ("🔄 GPUpdate", self.gpupdate),
-            ]),
-            ("MAINTENANCE", [
-                ("🔧 Full Maintenance", self.full_maintenance),
-                ("🖨️ Restart Print Spooler", self.restart_print_spooler),
-                ("🛡️ Windows Defender Scan", self.defender_scan),
-                ("🧠 RAM Cleaner", self.ram_cleaner),
-                ("⚡ Startup Optimizer", self.startup_optimizer),
-                ("🔄 Network Reset", self.network_reset),
-            ])
-        ]
+        self.categories_data = {
+            "🌐 NETWORK": {
+                "buttons": [
+                    ("Show IP Config", self.show_ip_config),
+                    ("Flush DNS", self.flush_dns),
+                    ("Renew DHCP", self.renew_dhcp),
+                    ("Restart DNS Client", self.restart_dns_client),
+                    ("Ping Google", self.ping_google),
+                    ("Ping Gateway", self.ping_gateway),
+                    ("Check Internet", self.check_internet),
+                    ("Custom Ping", self.custom_ping),
+                    ("Network Reset", self.network_reset),
+                ]
+            },
+            "💻 SYSTEM": {
+                "buttons": [
+                    ("System Info", self.system_info),
+                    ("Disk Usage", self.disk_usage),
+                    ("Disk Scan", self.disk_scan),
+                    ("Clean Temp Files", self.clean_temp),
+                    ("Empty Recycle Bin", self.empty_recycle_bin),
+                    ("GPUpdate", self.gpupdate),
+                    ("Restart Print Spooler", self.restart_print_spooler),
+                ]
+            },
+            "🔧 MAINTENANCE": {
+                "buttons": [
+                    ("Full Maintenance", self.full_maintenance),
+                    ("Windows Defender Scan", self.defender_scan),
+                    ("RAM Cleaner", self.ram_cleaner),
+                    ("Startup Optimizer", self.startup_optimizer),
+                ]
+            }
+        }
         
-        for category, commands in categories:
-            cat_frame = CTkFrame(scrollable_frame, fg_color="transparent")
-            cat_frame.pack(fill="x", padx=5, pady=(10, 5))
+        self.build_navigation()
+        
+    def build_navigation(self):
+        for widget in self.nav_scroll.winfo_children():
+            widget.destroy()
+        
+        for category_name, category_data in self.categories_data.items():
+            is_active = (self.active_category == category_name)
             
-            CTkLabel(
-                cat_frame,
-                text=category,
+            cat_btn = CTkButton(
+                self.nav_scroll,
+                text=category_name,
+                command=lambda c=category_name: self.toggle_category(c),
+                fg_color=self.colors['neon_blue'] if is_active else self.colors['bg_light'],
+                hover_color=self.colors['neon_blue'],
+                text_color=self.colors['text_primary'],
                 font=("Consolas", 12, "bold"),
-                text_color=self.colors['neon_purple']
-            ).pack(anchor="w")
+                height=42,
+                corner_radius=12,
+                anchor="w"
+            )
+            cat_btn.pack(fill="x", pady=2)
             
-            for text, command in commands:
-                btn = CTkButton(
-                    scrollable_frame,
-                    text=text,
-                    command=command,
-                    fg_color=self.colors['bg_light'],
-                    hover_color=self.colors['neon_blue'],
-                    text_color=self.colors['text_primary'],
-                    font=("Consolas", 11),
-                    height=35,
-                    anchor="w"
-                )
-                btn.pack(fill="x", padx=5, pady=2)
+            if is_active:
+                buttons_frame = CTkFrame(self.nav_scroll, fg_color=self.colors['bg_dark'], corner_radius=10)
                 
-    def create_terminal(self):
-        terminal_panel = CTkFrame(self.content_frame, fg_color=self.colors['bg_medium'])
-        terminal_panel.pack(side="right", fill="both", expand=True)
+                for btn_text, btn_command in category_data["buttons"]:
+                    btn = CTkButton(
+                        buttons_frame,
+                        text=btn_text,
+                        command=btn_command,
+                        fg_color="transparent",
+                        hover_color=self.colors['neon_purple'],
+                        text_color=self.colors['text_secondary'],
+                        font=("Consolas", 10),
+                        height=34,
+                        corner_radius=8,
+                        anchor="w"
+                    )
+                    btn.pack(fill="x", padx=5, pady=1)
+                
+                buttons_frame.pack(fill="x", pady=(0, 5))
         
-        terminal_header = CTkFrame(terminal_panel, fg_color=self.colors['bg_light'], height=40)
-        terminal_header.pack(fill="x")
+    def toggle_category(self, category_name):
+        if self.active_category == category_name:
+            self.active_category = None
+        else:
+            self.active_category = category_name
+        
+        self.build_navigation()
+        
+    def create_main_panel(self):
+        self.main_panel = CTkFrame(self.content_frame, fg_color=self.colors['bg_medium'], corner_radius=15)
+        self.main_panel.pack(side="right", fill="both", expand=True)
+        
+        self.view_selector = CTkSegmentedButton(
+            self.main_panel,
+            values=["📟 Terminal", "📊 Dashboard"],
+            command=self.switch_view,
+            fg_color=self.colors['bg_light'],
+            selected_color=self.colors['neon_blue'],
+            unselected_color=self.colors['bg_light'],
+            text_color=self.colors['text_primary'],
+            font=("Consolas", 12, "bold"),
+            corner_radius=12
+        )
+        self.view_selector.pack(pady=10, padx=10)
+        self.view_selector.set("📟 Terminal")
+        
+        self.terminal_frame = CTkFrame(self.main_panel, fg_color="transparent")
+        self.dashboard_frame = CTkFrame(self.main_panel, fg_color="transparent")
+        
+        self.create_terminal_view()
+        self.create_dashboard_view()
+        
+        self.terminal_frame.pack(fill="both", expand=True)
+        
+    def create_terminal_view(self):
+        terminal_header = CTkFrame(self.terminal_frame, fg_color=self.colors['bg_light'], height=40, corner_radius=12)
+        terminal_header.pack(fill="x", padx=10)
         terminal_header.pack_propagate(False)
         
         CTkLabel(
@@ -203,45 +259,28 @@ class SysForge(CTk):
         controls_frame = CTkFrame(terminal_header, fg_color="transparent")
         controls_frame.pack(side="right", padx=10)
         
-        CTkButton(
-            controls_frame,
-            text="📋 Copy",
-            command=self.copy_logs,
-            width=80,
-            height=30,
-            fg_color=self.colors['bg_medium'],
-            text_color=self.colors['text_primary'],
-            font=("Consolas", 10)
-        ).pack(side="left", padx=2)
-        
-        CTkButton(
-            controls_frame,
-            text="💾 Save",
-            command=self.save_logs,
-            width=80,
-            height=30,
-            fg_color=self.colors['bg_medium'],
-            text_color=self.colors['text_primary'],
-            font=("Consolas", 10)
-        ).pack(side="left", padx=2)
-        
-        CTkButton(
-            controls_frame,
-            text="🗑️ Clear",
-            command=self.clear_terminal,
-            width=80,
-            height=30,
-            fg_color=self.colors['bg_medium'],
-            text_color=self.colors['neon_red'],
-            font=("Consolas", 10)
-        ).pack(side="left", padx=2)
+        for text, cmd, color in [("📋 Copy", self.copy_logs, self.colors['text_primary']), 
+                                   ("💾 Save", self.save_logs, self.colors['text_primary']), 
+                                   ("🗑️ Clear", self.clear_terminal, self.colors['neon_red'])]:
+            CTkButton(
+                controls_frame,
+                text=text,
+                command=cmd,
+                width=80,
+                height=30,
+                fg_color=self.colors['bg_medium'],
+                text_color=color,
+                font=("Consolas", 10),
+                corner_radius=8
+            ).pack(side="left", padx=2)
         
         self.terminal = CTkTextbox(
-            terminal_panel,
+            self.terminal_frame,
             fg_color=self.colors['bg_dark'],
             text_color=self.colors['neon_green'],
             font=("Consolas", 11),
-            wrap="word"
+            wrap="word",
+            corner_radius=12
         )
         self.terminal.pack(fill="both", expand=True, padx=10, pady=10)
         
@@ -250,16 +289,16 @@ class SysForge(CTk):
         self.terminal.tag_config("warning", foreground="#ffaa00")
         self.terminal.tag_config("info", foreground="#00d4ff")
         self.terminal.tag_config("header", foreground="#b44dff")
-        self.terminal.tag_config("cyan", foreground="#00d4ff")
         
-        self.progress_frame = CTkFrame(terminal_panel, fg_color="transparent", height=30)
+        self.progress_frame = CTkFrame(self.terminal_frame, fg_color="transparent", height=30)
         self.progress_frame.pack(fill="x", padx=10, pady=(0, 10))
         
         self.progress_bar = CTkProgressBar(
             self.progress_frame,
             fg_color=self.colors['bg_light'],
             progress_color=self.colors['neon_blue'],
-            height=15
+            height=15,
+            corner_radius=10
         )
         self.progress_bar.pack(fill="x")
         self.progress_bar.set(0)
@@ -269,8 +308,138 @@ class SysForge(CTk):
         self.log_terminal("Ready to execute system commands...", "success")
         self.log_terminal("")
         
+    def create_dashboard_view(self):
+        dashboard_scroll = CTkScrollableFrame(
+            self.dashboard_frame,
+            fg_color="transparent",
+            scrollbar_button_color=self.colors['neon_blue'],
+            scrollbar_button_hover_color=self.colors['neon_purple']
+        )
+        dashboard_scroll.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        stats_grid = CTkFrame(dashboard_scroll, fg_color="transparent")
+        stats_grid.pack(fill="x", pady=(0, 10))
+        
+        self.dashboard_labels = {}
+        
+        cards = [
+            ("💻 System", [
+                ("Hostname", socket.gethostname()),
+                ("OS", "Windows"),
+                ("CPU Cores", str(psutil.cpu_count())),
+            ]),
+            ("🧠 Memory", [
+                ("Total RAM", f"{psutil.virtual_memory().total / (1024**3):.1f} GB"),
+                ("Available", f"{psutil.virtual_memory().available / (1024**3):.1f} GB"),
+                ("Usage", f"{psutil.virtual_memory().percent}%"),
+            ]),
+            ("💾 Storage", [
+                ("Total Disk", f"{psutil.disk_usage('/').total / (1024**3):.1f} GB"),
+                ("Free Space", f"{psutil.disk_usage('/').free / (1024**3):.1f} GB"),
+                ("Usage", f"{psutil.disk_usage('/').percent}%"),
+            ]),
+            ("🌐 Network", [
+                ("Internet", "Checking..."),
+                ("IP Address", self.get_local_ip()),
+                ("Gateway", self.get_default_gateway() or "N/A"),
+            ]),
+        ]
+        
+        for card_title, card_items in cards:
+            card = CTkFrame(stats_grid, fg_color=self.colors['bg_dark'], corner_radius=15)
+            card.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            
+            CTkLabel(
+                card,
+                text=card_title,
+                font=("Consolas", 14, "bold"),
+                text_color=self.colors['neon_purple']
+            ).pack(pady=(10, 5))
+            
+            for label, value in card_items:
+                item_frame = CTkFrame(card, fg_color="transparent")
+                item_frame.pack(fill="x", padx=10, pady=2)
+                
+                CTkLabel(
+                    item_frame,
+                    text=f"{label}:",
+                    font=("Consolas", 10),
+                    text_color=self.colors['text_secondary']
+                ).pack(side="left")
+                
+                value_label = CTkLabel(
+                    item_frame,
+                    text=value,
+                    font=("Consolas", 10, "bold"),
+                    text_color=self.colors['neon_green']
+                )
+                value_label.pack(side="right")
+                self.dashboard_labels[f"{card_title}_{label}"] = value_label
+        
+        self.dashboard_output = CTkFrame(dashboard_scroll, fg_color=self.colors['bg_dark'], corner_radius=15)
+        self.dashboard_output.pack(fill="both", expand=True)
+        
+        CTkLabel(
+            self.dashboard_output,
+            text="📋 COMMAND OUTPUT",
+            font=("Consolas", 14, "bold"),
+            text_color=self.colors['neon_blue']
+        ).pack(pady=(10, 5))
+        
+        self.dashboard_output_textbox = CTkTextbox(
+            self.dashboard_output,
+            fg_color=self.colors['bg_medium'],
+            text_color=self.colors['neon_green'],
+            font=("Consolas", 11),
+            wrap="word",
+            height=200,
+            corner_radius=12
+        )
+        self.dashboard_output_textbox.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        self.dashboard_output_textbox.tag_config("success", foreground="#00ff88")
+        self.dashboard_output_textbox.tag_config("error", foreground="#ff4444")
+        self.dashboard_output_textbox.tag_config("warning", foreground="#ffaa00")
+        self.dashboard_output_textbox.tag_config("info", foreground="#00d4ff")
+        self.dashboard_output_textbox.tag_config("header", foreground="#b44dff")
+        
+        self.dashboard_output_textbox.insert("end", "Run commands to see output here...\n", "info")
+        
+        self.update_dashboard_stats()
+        
+    def update_dashboard_stats(self):
+        try:
+            self.dashboard_labels["💻 System_Hostname"].configure(text=socket.gethostname())
+            self.dashboard_labels["🧠 Memory_Total RAM"].configure(text=f"{psutil.virtual_memory().total / (1024**3):.1f} GB")
+            self.dashboard_labels["🧠 Memory_Available"].configure(text=f"{psutil.virtual_memory().available / (1024**3):.1f} GB")
+            self.dashboard_labels["🧠 Memory_Usage"].configure(text=f"{psutil.virtual_memory().percent}%")
+            self.dashboard_labels["💾 Storage_Total Disk"].configure(text=f"{psutil.disk_usage('/').total / (1024**3):.1f} GB")
+            self.dashboard_labels["💾 Storage_Free Space"].configure(text=f"{psutil.disk_usage('/').free / (1024**3):.1f} GB")
+            self.dashboard_labels["💾 Storage_Usage"].configure(text=f"{psutil.disk_usage('/').percent}%")
+            
+            try:
+                socket.create_connection(("8.8.8.8", 53), timeout=2)
+                self.dashboard_labels["🌐 Network_Internet"].configure(text="Connected ✓", text_color=self.colors['neon_green'])
+            except:
+                self.dashboard_labels["🌐 Network_Internet"].configure(text="Disconnected ✗", text_color=self.colors['neon_red'])
+        except:
+            pass
+        
+        self.after(3000, self.update_dashboard_stats)
+        
+    def switch_view(self, choice):
+        self.terminal_frame.pack_forget()
+        self.dashboard_frame.pack_forget()
+        
+        if choice == "📟 Terminal":
+            self.terminal_frame.pack(fill="both", expand=True)
+            self.current_view = "terminal"
+        else:
+            self.dashboard_frame.pack(fill="both", expand=True)
+            self.current_view = "dashboard"
+        
     def create_status_bar(self):
-        status_bar = CTkFrame(self.main_container, height=30, fg_color=self.colors['bg_medium'])
+        status_bar = CTkFrame(self.main_container, height=30, fg_color=self.colors['bg_medium'], corner_radius=10)
         status_bar.pack(fill="x", padx=10, pady=(0, 10))
         status_bar.pack_propagate(False)
         
@@ -293,6 +462,11 @@ class SysForge(CTk):
         
         self.terminal.insert("end", formatted_message, tag)
         self.terminal.see("end")
+        
+        if hasattr(self, 'dashboard_output_textbox'):
+            self.dashboard_output_textbox.insert("end", formatted_message, tag)
+            self.dashboard_output_textbox.see("end")
+        
         self.update()
         
     def run_command(self, command, shell=True):
@@ -609,6 +783,16 @@ class SysForge(CTk):
             pass
         return None
         
+    def get_local_ip(self):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "N/A"
+        
     def is_admin(self):
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
@@ -672,6 +856,9 @@ class SysForge(CTk):
             
     def clear_terminal(self):
         self.terminal.delete("1.0", "end")
+        if hasattr(self, 'dashboard_output_textbox'):
+            self.dashboard_output_textbox.delete("1.0", "end")
+            self.dashboard_output_textbox.insert("end", "Run commands to see output here...\n", "info")
         self.log_terminal("🗑️ Terminal cleared", "info")
         
 def main():
