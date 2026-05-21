@@ -1,6 +1,5 @@
 # ⚡ SysForge - IT Command Center
 
-![SysForge Screenshot](assets/screenshot.png)
 
 A cool Windows system administration tool built with Python and CustomTkinter.
 
